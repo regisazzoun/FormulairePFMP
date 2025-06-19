@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Grille Évaluation - Bac Pro CIEL</title>
+  <style>
+    body { font-family: sans-serif; margin: 10px; background: #f9f9f9; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+    th { background: #eee; }
+    .photo-preview, canvas { display: block; margin: 10px auto; border: 1px solid #ccc; }
+    button { display: block; margin: 10px auto; padding: 10px; font-size: 1rem; }
+  </style>
+</head>
+<body>
+  <h2>Grille d'évaluation - Bac Pro CIEL</h2>
+
+  <div id="competenceGrids"></div>
+
+  <h3>Prendre une photo</h3>
+  <input type="file" accept="image/*" capture="environment" id="cameraInput">
+  <img id="photoPreview" class="photo-preview" width="300" />
+
+  <h3>Signature</h3>
+  <canvas id="signatureCanvas" width="300" height="150"></canvas>
+  <button onclick="clearSignature()">Effacer la signature</button>
+
+  <button onclick="generatePDF()">Envoyer le formulaire en PDF</button>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script>
+    const competences = [
+      "CO1 : Communiquer en situation professionnelle",
+      "CO3 : Participer à un projet",
+      "CO4 : Analyser une structure matérielle et logicielle",
+      "CO6 : Valider la conformité d’une installation",
+      "CO7 : Réaliser des maquettes et prototypes",
+      "CO8 : Coder",
+      "CO9 : Installer les éléments d’un système électronique ou informatique",
+      "C10 : Exploiter un réseau informatique",
+      "C11 : Maintenir un système électronique ou réseau informatique"
+    ];
+
+    const competenceGrids = document.getElementById("competenceGrids");
+
+    competences.forEach((comp, index) => {
+      const html = `
+        <h3>${comp}</h3>
+        <table>
+          <tr>
+            <th>Période</th>
+            <th>Non réalisé</th>
+            <th>Partiel</th>
+            <th>Satisfaisant</th>
+            <th>Très satisfaisant</th>
+          </tr>
+          <tr>
+            <td>PFMP 1</td>
+            <td><input type="checkbox" name="c${index}_1" value="1"></td>
+            <td><input type="checkbox" name="c${index}_1" value="2"></td>
+            <td><input type="checkbox" name="c${index}_1" value="3"></td>
+            <td><input type="checkbox" name="c${index}_1" value="4"></td>
+          </tr>
+        </table>`;
+      competenceGrids.insertAdjacentHTML("beforeend", html);
+    });
+
+    // Photo preview
+    const cameraInput = document.getElementById('cameraInput');
+    const photoPreview = document.getElementById('photoPreview');
+
+    cameraInput.addEventListener('change', (event) => {
+      const file = event.target.files[0];
+      if (file) {
+        photoPreview.src = URL.createObjectURL(file);
+      }
+    });
+
+    // Signature
+    const canvas = document.getElementById("signatureCanvas");
+    const ctx = canvas.getContext("2d");
+    let drawing = false;
+
+    canvas.addEventListener("touchstart", (e) => {
+      drawing = true;
+      ctx.beginPath();
+      ctx.moveTo(e.touches[0].clientX - canvas.offsetLeft, e.touches[0].clientY - canvas.offsetTop);
+    });
+
+    canvas.addEventListener("touchmove", (e) => {
+      if (!drawing) return;
+      ctx.lineTo(e.touches[0].clientX - canvas.offsetLeft, e.touches[0].clientY - canvas.offsetTop);
+      ctx.stroke();
+    });
+
+    canvas.addEventListener("touchend", () => {
+      drawing = false;
+    });
+
+    function clearSignature() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    async function generatePDF() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+
+      doc.setFontSize(14);
+      doc.text("Grille d'évaluation Bac Pro CIEL", 10, 10);
+
+      let y = 20;
+      competences.forEach((c, i) => {
+        doc.text(c, 10, y);
+        y += 8;
+      });
+
+      const sigData = canvas.toDataURL("image/png");
+      doc.addImage(sigData, "PNG", 10, y + 10, 80, 40);
+
+      doc.save("grille_evaluation.pdf");
+
+      window.location.href = "mailto:regis.azzoun@gmail.com?subject=Grille%20%C3%A9valuation&body=Veuillez%20trouver%20ci-joint%20le%20formulaire%20rempli.%20Le%20fichier%20PDF%20a%20%C3%A9t%C3%A9%20g%C3%A9n%C3%A9r%C3%A9%20sur%20votre%20appareil.";
+    }
+  </script>
+</body>
+</html>
