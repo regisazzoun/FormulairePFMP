@@ -47,7 +47,7 @@
     competences.forEach((comp, index) => {
       const html = `
         <h3>${comp}</h3>
-        <table>
+        <table data-index="${index}">
           <tr>
             <th>Période</th>
             <th>Non réalisé</th>
@@ -57,10 +57,10 @@
           </tr>
           <tr>
             <td>PFMP 1</td>
-            <td><input type="checkbox" name="c${index}_1" value="1"></td>
-            <td><input type="checkbox" name="c${index}_1" value="2"></td>
-            <td><input type="checkbox" name="c${index}_1" value="3"></td>
-            <td><input type="checkbox" name="c${index}_1" value="4"></td>
+            <td><input type="checkbox" name="c${index}_1" value="Non réalisé"></td>
+            <td><input type="checkbox" name="c${index}_1" value="Partiel"></td>
+            <td><input type="checkbox" name="c${index}_1" value="Satisfaisant"></td>
+            <td><input type="checkbox" name="c${index}_1" value="Très satisfaisant"></td>
           </tr>
         </table>`;
       competenceGrids.insertAdjacentHTML("beforeend", html);
@@ -69,11 +69,17 @@
     // Photo preview
     const cameraInput = document.getElementById('cameraInput');
     const photoPreview = document.getElementById('photoPreview');
+    let photoData = null;
 
     cameraInput.addEventListener('change', (event) => {
       const file = event.target.files[0];
       if (file) {
-        photoPreview.src = URL.createObjectURL(file);
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          photoData = e.target.result;
+          photoPreview.src = photoData;
+        };
+        reader.readAsDataURL(file);
       }
     });
 
@@ -102,6 +108,7 @@
       ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
 
+    // Générer PDF
     async function generatePDF() {
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
@@ -111,9 +118,20 @@
 
       let y = 20;
       competences.forEach((c, i) => {
-        doc.text(c, 10, y);
+        const table = document.querySelector(`table[data-index='${i}']`);
+        const inputs = table.querySelectorAll("input[type=checkbox]");
+        let selected = "(aucun)";
+        inputs.forEach(input => {
+          if (input.checked) selected = input.value;
+        });
+        doc.text(`${c} : ${selected}`, 10, y);
         y += 8;
       });
+
+      if (photoData) {
+        doc.addImage(photoData, "JPEG", 10, y + 5, 60, 45);
+        y += 55;
+      }
 
       const sigData = canvas.toDataURL("image/png");
       doc.addImage(sigData, "PNG", 10, y + 10, 80, 40);
